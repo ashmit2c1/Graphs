@@ -2,80 +2,6 @@
 using namespace std;
 // CHEAPEST FLIGHT WITHIN K STOPS 
 int findCheapestPrice(int n, vector<vector<int>>& flights, int src, int dst, int k) {
-    vector<vector<pair<int,int>>>adj(n);
-    for(int i=0;i<flights.size();i++){
-        int source = flights[i][0];
-        int destination = flights[i][1];
-        int price = flights[i][2];
-        adj[source].push_back({destination,price});
-    }
-    queue<pair<int,pair<int,int>>>q; // source, currentcost, stops
-    q.push({src,{0,0}});
-    int minCost = INT_MAX;
-    while(q.empty()==false){
-        int currentCity = q.front().first;
-        int currentCost = q.front().second.first;
-        int currentStops = q.front().second.second;
-        q.pop();
-        if(currentCity==dst){
-            minCost=min(minCost,currentCost);
-        }
-        if(currentStops<=k){
-            int n=adj[currentCity].size();
-            for(int i = 0; i<n ; i++){
-                int neighbor = adj[currentCity][i].first;
-                int cost = currentCost+adj[currentCity][i].second;
-                q.push({neighbor,{cost,currentStops+1}});
-            }
-        }
-    }
-    if(minCost==INT_MAX){
-        return -1;
-    }else{
-        return minCost;
-    }
-}
-// CHEAPEST FLIGHT WITH K STOPS USING VECTOR TO STORE THE RESULTS 
-int findCheapestPrice(int n, vector<vector<int>>& flights, int src, int dst, int k) {
-    vector<vector<pair<int,int>>>adj(n);
-    for(int i=0;i<flights.size();i++){
-        int source = flights[i][0];
-        int destination = flights[i][1];
-        int price = flights[i][2];
-        adj[source].push_back({destination,price});
-    }
-    queue<pair<int,pair<int,int>>>q; // source, currentcost, stops
-    q.push({src,{0,0}});
-    int minCost = INT_MAX;
-    vector<vector<int>>visited(n,vector<int>(k+1,INT_MAX));
-    while(q.empty()==false){
-        int currentCity = q.front().first;
-        int currentCost = q.front().second.first;
-        int currentStops = q.front().second.second;
-        q.pop();
-        if(currentCity==dst){
-            minCost=min(minCost,currentCost);
-        }
-        if(currentStops<=k){
-            int n=adj[currentCity].size();
-            for(int i = 0; i<n ; i++){
-                int neighbor = adj[currentCity][i].first;
-                int cost = currentCost+adj[currentCity][i].second;
-                if(visited[neighbor][currentStops+1]>cost){
-                    visited[neighbor][currentStops+1]=cost;
-                    q.push({neighbor,{currentCost,currentStops+1}});
-                }
-            }
-        }
-    }
-    if(minCost==INT_MAX){
-        return -1;
-    }else{
-        return minCost;
-    }
-}
-// CHEAPEST FLIGHT WITHIN K STOPS 
-int findCheapestPrice(int n, vector<vector<int>>& flights, int src, int dst, int k) {
 vector<vector<pair<int,int>>>adj(n);
     for(auto it:flights){
         adj[it[0]].push_back({it[1],it[2]});
@@ -100,5 +26,60 @@ vector<vector<pair<int,int>>>adj(n);
     }
     if(distance[dst]==1e9) return -1;
     return distance[dst];
+}
+// USING DIJKSTRA
+int findCheapestPrice(int n, vector<vector<int>>& flights, int src, int dst, int k) {
+    vector<vector<pair<int, int>>> adj(n);
+    for (auto it : flights) {
+        adj[it[0]].push_back({it[1], it[2]});
+    }
 
+    vector<int> distance(n, 1e9);
+    distance[src] = 0;
+
+    // Min-heap: {totalCost, stopsUsed, node}
+    priority_queue<tuple<int, int, int>, vector<tuple<int, int, int>>, greater<>> pq;
+    pq.push({0, 0, src});
+
+    while (!pq.empty()) {
+        auto [cost, stop, node] = pq.top();
+        pq.pop();
+
+        if (stop > k) continue;
+
+        for (auto it : adj[node]) {
+            int adjnode = it.first;
+            int wt = it.second;
+
+            if (cost + wt < distance[adjnode] && stop <= k) {
+                distance[adjnode] = cost + wt;
+                pq.push({cost + wt, stop + 1, adjnode});
+            }
+        }
+    }
+
+    if (distance[dst] == 1e9) return -1;
+    return distance[dst];
+}
+
+// USING BELLMAN FORD ALGORITHM
+int findCheapestPrice(int n, vector<vector<int>>& flights, int src, int dst, int k) {
+    vector<int> prev(n, 1e9);
+    prev[src] = 0;
+
+    for (int i = 0; i <= k; i++) {
+        vector<int> curr = prev;
+        for (auto& flight : flights) {
+            int u = flight[0];
+            int v = flight[1];
+            int wt = flight[2];
+
+            if (prev[u] != 1e9 && prev[u] + wt < curr[v]) {
+                curr[v] = prev[u] + wt;
+            }
+        }
+        prev = curr;
+    }
+
+    return prev[dst] == 1e9 ? -1 : prev[dst];
 }
